@@ -37,13 +37,13 @@ class App extends Component {
               defaultSelectedKeys={['2']}
               style={{ float: 'right', lineHeight: '64px' }}
             >
-              <Menu.Item key="1">首页</Menu.Item>
+              <Menu.Item key="1"><Link to="/">首页</Link></Menu.Item>
               <Menu.Item key="2">我的应用</Menu.Item>
               <Menu.Item key="3">文档</Menu.Item>
               <Menu.Item key="4">工具</Menu.Item>
               <Menu.Item key="5">SDK下载</Menu.Item>
-              <Menu.Item key="5">登录</Menu.Item>
-              <Menu.Item key="5">注册</Menu.Item>
+              <Menu.Item key="6"><Link to="/login">登录</Link></Menu.Item>
+              <Menu.Item key="7"><Link to="/register">注册</Link></Menu.Item>
               <SubMenu title={<Avatar size="large" src={require('./images/avatar.png')} />}>
                   <Menu.Item key="setting:1">Option 1</Menu.Item>
                   <Menu.Item key="setting:2">Option 2</Menu.Item>
