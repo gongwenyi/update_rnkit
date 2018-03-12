@@ -1,0 +1,27 @@
+{
+  "plugins": [
+    "transform-runtime",
+    "react-html-attrs",
+    ["import", {
+      "libraryName": "antd",
+      "style": true
+    }]
+  ],
+  "presets": [
+    "flow",
+    "react",
+    ["env", {
+      "modules": false,
+      "targets": {
+        "browsers": ["> 1%", "last 2 versions", "not ie <= 8"]
+      }
+    }],
+    "stage-2"
+  ],
+  "env": {
+    "test": {
+      "presets": ["env", "stage-2"],
+      "plugins": ["istanbul"]
+    }
+  }
+}
