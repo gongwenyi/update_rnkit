@@ -8,7 +8,7 @@ import actions from 'store/syncActions';
 import storage from 'utils/storage';
 import jwt from 'utils/jwt';
 import funs from 'utils/commonFuns';
-import App from './app';
+import App from './App';
 import store from './store';
 
 // 添加全局变量
