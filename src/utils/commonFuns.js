@@ -24,4 +24,8 @@ export default {
       }
     } }));
   },
+  formalTime(text) {
+    if (!text) return '';
+    return moment(text).format('YYYY-MM-DD HH:mm:ss');
+  },
 };

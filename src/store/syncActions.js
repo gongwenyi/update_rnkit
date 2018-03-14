@@ -10,9 +10,12 @@ export default {
     return async (dispatch) => { // eslint-disable-line
       const { callback } = preParams;
       try {
+        if (preParams.dataName) dispatch({ type: 'COMMON_CHANGE', keyValue: { [`${preParams.dataName}IsLoading`]: true } }); // 开始loading
         const response = await Api.common.get(preParams);
+        if (preParams.dataName) dispatch({ type: 'COMMON_CHANGE', keyValue: { [`${preParams.dataName}IsLoading`]: false } }); // 结束loading
         if (callback) callback(response);
       } catch (error) {
+        if (preParams.dataName) dispatch({ type: 'COMMON_CHANGE', keyValue: { [`${preParams.dataName}IsLoading`]: false } }); // 结束loading
         message.error('接口异常，请稍后重试！');
         if (callback) callback();
         console.log(error);
@@ -27,9 +30,12 @@ export default {
     return async (dispatch) => { // eslint-disable-line
       const { callback } = preParams;
       try {
+        if (preParams.dataName) dispatch({ type: 'COMMON_CHANGE', keyValue: { [`${preParams.dataName}IsLoading`]: true } }); // 开始loading
         const response = await Api.common.post(preParams);
+        if (preParams.dataName) dispatch({ type: 'COMMON_CHANGE', keyValue: { [`${preParams.dataName}IsLoading`]: false } }); // 结束loading
         if (callback) callback(response);
       } catch (error) {
+        if (preParams.dataName) dispatch({ type: 'COMMON_CHANGE', keyValue: { [`${preParams.dataName}IsLoading`]: false } }); // 结束loading
         message.error('接口异常，请稍后重试！');
         if (callback) callback();
         console.log(error);

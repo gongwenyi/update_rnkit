@@ -1,0 +1,118 @@
+:local(.appCont){
+  .grid {
+    height: 100%;
+    min-width: 1100px;
+    max-width: 1200px;
+    display: flex;
+    display: -webkit-flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: auto;
+  }
+  .grid-nav {
+    flex: 5;
+    max-width: 30%;
+    overflow: hidden;
+  }
+  .grid-content {
+    flex: 16;
+    height: 100%;
+    margin-left: 20px;
+    margin-top: 20px;
+  }
+  .app-info {
+    padding-top: 100px;
+    text-align: center;
+    max-height: 500px;
+    overflow: hidden;
+  }
+  .app-logo {
+    width: 100px;
+    height: 100px;
+  }
+  .app-name,
+  .app-key {
+    font-size: 16px;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .app-identifier{
+    word-break:break-all;
+  }
+  .app-name, .app-version, .app-identifier, .platform{
+    margin: 8px 0;
+  }
+  .platform {
+    font-size: 14px;
+  }
+  .nav {
+    padding: 50px 10px 0;
+  }
+  .nav-item {
+    display: -webkit-flex;
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 20px;
+    font-size: 14px;
+    text-decoration: none;
+    color: #2c3e50;
+  }
+  .nav-item.link-active,
+  .nav-item:hover{
+    background-color: #20A0FF;
+    color: #fff;
+  }
+}
+
+:local(.monitor){
+  thead.ant-table-thead > tr > th{
+    background-color: #EFF2F7;
+  }
+  tbody{
+    background-color: #F9FAFC;
+  }
+}
+
+:local(.appInfo){
+  width: 500px;
+  margin: 100px auto 0;
+  .info-row {
+    font-size: 14px;
+    color: #48576a;
+    margin: 10px 0;
+  }
+  .info-row label {
+    display: inline-block;
+    width: 110px;
+    text-align: right;
+    vertical-align: middle;
+    font-size: 14px;
+    font-size: 14px;
+    line-height: 1;
+    padding: 11px 12px 11px 0;
+  }
+  .ant-row{
+    white-space: nowrap;
+    margin-bottom: 14px;
+    .ant-form-item-label{
+      width: 100px;
+      label{
+        color: #48576a;
+      }
+    }
+    .ant-form-item-control-wrapper{
+      display: inline-block;
+      width: 350px;
+    }
+  }
+  .btnFormItem{
+    text-align: center;
+  }
+  .ant-btn {
+    display: block;
+    width: 300px;
+    margin: 0 auto;
+  }
+}

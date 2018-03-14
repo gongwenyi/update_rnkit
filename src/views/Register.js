@@ -19,6 +19,9 @@ class Register extends React.Component {
       intervalId: null, // 计时器id
     };
   }
+  componentDidMount() {
+    $('.appContent').scrollTop(0);
+  }
   componentWillUnmount() {
     window.clearInterval(this.state.intervalId);
   }
@@ -50,6 +53,7 @@ class Register extends React.Component {
   }
   render() {
     const { getFieldDecorator } = this.props.form;
+    document.title = '注册 - React Native热更新-RNKit云服务';
     return (
       <div className="register" class={ appStyle.register }>
         <Form onSubmit={this.handleSubmit.bind(this)} className="login-form">
@@ -76,7 +80,7 @@ class Register extends React.Component {
           </FormItem>
           <FormItem>
             <Button type="primary" htmlType="submit" loading={this.props.registerIsLoading} className="login-form-button">
-              登录
+              立即注册
             </Button>
             <div style={{ textAlign: 'center' }}><span>已有账号？</span><Link to="/login">立即登录！</Link></div>
           </FormItem>

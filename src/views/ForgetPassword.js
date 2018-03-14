@@ -19,6 +19,9 @@ class ForgetPassword extends React.Component {
       intervalId: null, // 计时器id
     };
   }
+  componentDidMount() {
+    $('.appContent').scrollTop(0);
+  }
   componentWillUnmount() {
     window.clearInterval(this.state.intervalId);
   }
@@ -49,6 +52,7 @@ class ForgetPassword extends React.Component {
   }
   render() {
     const { getFieldDecorator } = this.props.form;
+    document.title = '忘记密码 - React Native热更新-RNKit云服务';
     return (
       <div className="register" class={ appStyle.register }>
         <Form onSubmit={this.handleSubmit.bind(this)} className="login-form">

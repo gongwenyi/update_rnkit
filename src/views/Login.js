@@ -12,6 +12,9 @@ class Login extends React.Component {
     super(props);
     this.state = {};
   }
+  componentDidMount() {
+    $('.appContent').scrollTop(0);
+  }
   handleSubmit(e) {
     e.preventDefault();
     const self = this;
@@ -33,6 +36,7 @@ class Login extends React.Component {
   }
   render() {
     const { getFieldDecorator } = this.props.form;
+    document.title = '登录 - React Native热更新-RNKit云服务';
     return (
       <div className="login" class={ appStyle.login }>
         <Form onSubmit={this.handleSubmit.bind(this)} className="login-form">
@@ -46,7 +50,7 @@ class Login extends React.Component {
 {/*             { getFieldDecorator('remember', { valuePropName: 'checked', initialValue: true })(<Checkbox>记住密码</Checkbox>) } */}
             <Link className="login-form-forgot" to="/forgetPassword">忘记密码？</Link>
             <Button type="primary" htmlType="submit" loading={this.props.loginIsLoading} className="login-form-button">
-              登录
+              登  录
             </Button>
             <div style={{ textAlign: 'center' }}><span>还没有账号？</span><Link to="/register">立即注册！</Link></div>
           </FormItem>

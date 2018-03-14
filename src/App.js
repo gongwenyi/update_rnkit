@@ -15,6 +15,7 @@ import Applications from 'views/Applications';
 import Register from 'views/Register';
 import ChangePassword from 'views/ChangePassword';
 import ForgetPassword from 'views/ForgetPassword';
+import AppCont from 'views/AppCont';
 
 const { Header, Content } = Layout;
 const { SubMenu, MenuItemGroup } = Menu;
@@ -37,16 +38,17 @@ class App extends React.Component {
     }
   }
   render() {
+    const rootKey = this.props.location.pathname.match(/^\/[^/]*/)[0];
     return (
         <Layout className="app" class={ appStyle.app }>
           <Header className="appHeader">
             <div className="appHeaderWrap">
-              <img src={require('assets/img/logo.png')}/>
+              <Link to="/"><img src={require('assets/img/logo.png')}/></Link>
               <Menu
                 theme="dark"
                 mode="horizontal"
                 onClick={this.menuClick.bind(this)}
-                selectedKeys={[this.props.location.pathname]}
+                selectedKeys={[rootKey]}
                 >
                 <Menu.Item key="/"><Link to="/">首页</Link></Menu.Item>
                 { this.props.authIsLogin && <Menu.Item key="/applications"><Link to="/applications">我的应用</Link></Menu.Item> }
@@ -67,7 +69,8 @@ class App extends React.Component {
             <div className="contentWrap">
               <Route exact path="/" component={Home}/>
               <Route path="/bind" component={Bind}/>
-              <Route path="/applications" component={Applications}/>
+              <Route exact path="/applications" component={Applications}/>
+              <Route path="/applications/:key" component={AppCont}/>
               <Route path="/login" component={Login}/>
               <Route path="/register" component={Register}/>
               <Route path="/changePassword" component={ChangePassword}/>

@@ -18,7 +18,11 @@ export default class Home extends React.Component {
       ],
     };
   }
+  componentDidMount() {
+    $('.appContent').scrollTop(0);
+  }
   render() {
+    document.title = '首页 - React Native热更新-RNKit云服务';
     return (
       <div className="home" class={ appStyle.home }>
         <p>领先的 BaaS 提供商<br/>为移动开发提供专业的云端支持</p>

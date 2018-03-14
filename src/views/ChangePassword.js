@@ -11,6 +11,9 @@ class ChangePassword extends React.Component {
     super(props);
     this.state = {};
   }
+  componentDidMount() {
+    $('.appContent').scrollTop(0);
+  }
   handleSubmit(e) {
     e.preventDefault();
     const self = this;
@@ -31,6 +34,7 @@ class ChangePassword extends React.Component {
   }
   render() {
     const { getFieldDecorator } = this.props.form;
+    document.title = '修改密码 - React Native热更新-RNKit云服务';
     return (
       <div className="changePassword" class={ appStyle.changePassword }>
         <Form onSubmit={this.handleSubmit.bind(this)} className="login-form">

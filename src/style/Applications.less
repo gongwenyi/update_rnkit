@@ -1,0 +1,73 @@
+:local(.applications){
+  padding-top: 20px;
+  max-width: 1100px;
+  margin: auto;
+  &::after {
+    content: '';
+    display: block;
+    clear: both;
+  }
+  .card {
+    width: 210px;
+    height: 278px;
+    float: left;
+    margin: 0 31px 20px;
+    padding: 5px 10px 10px;
+    text-align: center;
+    box-shadow: 0 1px 3px 0 #ccccfc;
+    .ant-card-body{
+      padding: 10px 0 0 0;
+    }
+  }
+  .logo {
+    width: 90px;
+    height: 90px;
+  }
+  .button {
+    width: 80px;
+    height: 28px;
+    margin-top: 5px;
+    margin: 8px 0;
+  }
+  .icon-add {
+    margin-top: 60px;
+    margin-bottom: 10px;
+  }
+  .platform {
+    font-size: 14px;
+    margin-top: 6px;
+  }
+  .fa-apple {
+    font-size: 16px;
+    /*color: #5BC0DE;*/
+    margin-right: 5px;
+  }
+  .fa-android {
+    font-size: 16px;
+    /*color: #95C03B;*/
+    margin-right: 5px;
+  }
+  .app-name{
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 1.17em;
+    font-weight: bold;
+    margin: 10px 0;
+  }
+  .app-version,
+  .app-identifier {
+    font-size: 12px;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 6px 0;
+  }
+  .loadmore-btn-box {
+    clear: both;
+    margin: 10px 0;
+    text-align: center;
+  }
+}

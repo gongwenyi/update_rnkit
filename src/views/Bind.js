@@ -19,6 +19,7 @@ class Bind extends React.Component {
     };
   }
   componentDidMount() {
+    $('.appContent').scrollTop(0);
     this.getUserInfo();
   }
   getUserInfo() {
@@ -50,6 +51,7 @@ class Bind extends React.Component {
   }
   render() {
     const { getFieldDecorator } = this.props.form;
+    document.title = '绑定手机/邮箱 - React Native热更新-RNKit云服务';
     return (
       <div className="register" class={ appStyle.register }>
         { this.props.userInfo.mobile && this.props.userInfo.email ?
@@ -69,7 +71,7 @@ class Bind extends React.Component {
           </FormItem>
           <FormItem>
             <Button type="primary" htmlType="submit" loading={this.props.bindIsLoading} className="login-form-button">
-              登录
+              确  定
             </Button>
           </FormItem>
         </Form> }
