@@ -12,4 +12,6 @@ export default {
   getAppListIsLoading: false, // 获取App列表加载loading
   changeAppInfoIsLoading: false, // 更新app或补丁信息加载loading
   deleteAppIsLoading: false, // 删除App加载loading
+  searchPackageListIsLoading: false, // 获取补丁包列表加载loading
+  searchVersionListIsLoading: false, // 获取版本列表加载loading
 };

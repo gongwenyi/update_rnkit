@@ -1,8 +1,7 @@
 import { message } from 'antd';
 
 export default {
-  getRegVerify(self, params) {
-    // console.log(value);
+  getRegVerify(self, params) { // 发送验证码
     if (self.state.time < 60) return;
     self.props.dispatch(actions.check({ url: 'auth/captcha', params, callback(res) {
       if (res && res.errno === 0) {
@@ -19,13 +18,15 @@ export default {
           self.setState(() => ({ intervalId }));
         }, 0);
         message.success('发送验证码成功,请注意查收！');
-      } else if (res) {
-        message.error(res.errmsg || '发送验证码失败！');
+      } else {
+        message.error(res ? (res.errmsg || '发送验证码失败！') : '接口异常，请稍后重试！');
       }
     } }));
   },
-  formalTime(text) {
-    if (!text) return '';
-    return moment(text).format('YYYY-MM-DD HH:mm:ss');
+  formalTime(text) { // 格式化时间
+    return text ? moment(text).format('YYYY-MM-DD HH:mm:ss') : '';
+  },
+  formalDate(text) { // 格式化时间
+    return text ? moment(text).format('YYYY-MM-DD') : '';
   },
 };

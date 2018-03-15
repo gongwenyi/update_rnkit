@@ -22,20 +22,22 @@ class Applications extends React.Component {
     $('.appContent').scrollTop(0);
     this.getAppList();
   }
-  getAppList() {
+  getAppList(addOne) {
     const self = this;
     self.props.dispatch(actions.check({ url: 'app/list', dataName: 'getAppList', params: { page: self.state.currentPage + 1 }, callback(res) {
-      if (res && res.errno === 0) {
-        self.setState(preState => ({
-          currentPage: res.data.currentPage,
-          numsPerPage: res.data.numsPerPage,
-          count: res.data.count,
-          appList: [...preState.appList, ...(res.data.data || [])],
-          totalPages: res.data.totalPages,
-        }));
-        console.log(self.state);
-      } else if (res) {
-        message.error(res.errmsg);
+      if (self.applications) { // 组件销毁时不进行数据更新操作
+        if (res && res.errno === 0) {
+          const addItems = addOne ? (res.data.data ? [res.data.data[res.data.data.length - 1]] : []) : (res.data.data || []);
+          self.setState(preState => ({
+            currentPage: res.data.currentPage,
+            numsPerPage: res.data.numsPerPage,
+            count: res.data.count,
+            appList: [...preState.appList, ...addItems],
+            totalPages: res.data.totalPages,
+          }));
+        } else {
+          message.error(res ? res.errmsg : '接口异常，请稍后重试！');
+        }
       }
     } }));
   }
@@ -52,14 +54,14 @@ class Applications extends React.Component {
     self.props.form.validateFields((errors, values) => {
       if (!errors) {
         self.props.dispatch(actions.saveNewOrSaveChange({ url: 'app/create', tip: '创建APP', params: values, callback(res) {
-          if (res && res.errno === 0) {
+          if (res && res.errno === 0 && self.applications) {
             self.setState(preState => ({ visible: false }));
             if (self.state.appList.length === self.state.count) { // 创建成功后如果是最后一页则更新页面数据
               if (self.state.count % self.state.numsPerPage === 0) {
-                self.getAppList();
+                self.getAppList(true);
               } else {
                 self.setState(preState => ({ currentPage: preState.currentPage - 1 }));
-                self.getAppList();
+                self.getAppList(true);
               }
             }
           }
@@ -74,7 +76,7 @@ class Applications extends React.Component {
     const { getFieldDecorator } = this.props.form;
     document.title = '我的应用 - React Native热更新-RNKit云服务';
     return (
-      <div className="applications" class={ appStyle.applications }>
+      <div className="applications" class={ appStyle.applications } ref={(applications) => { this.applications = applications; }}>
         { this.state.appList.map((item, index) => (
           <Card key={index} className="card">
             { item.icon ? <img className="logo" src={ item.icon } alt="app-logo" />
@@ -97,7 +99,7 @@ class Applications extends React.Component {
           </Button>
         </Card>
         { (this.state.totalPages > this.state.currentPage) && <div className="loadmore-btn-box">
-          <Button loading={this.props.getAppListIsLoading} onClick={this.getAppList.bind(this)}>加载更多</Button>
+          <Button loading={this.props.getAppListIsLoading} onClick={this.getAppList.bind(this, false)}>加载更多</Button>
         </div> }
         <Modal
           title="创建App"
