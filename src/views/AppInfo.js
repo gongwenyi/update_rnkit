@@ -36,6 +36,7 @@ class AppInfo extends React.Component {
     } }));
   }
   render() {
+    document.title = 'APP信息 - React Native热更新-RNKit云服务';
     const { getFieldDecorator } = this.props.form;
     return (
       <div className="appInfo" class={ appStyle.appInfo }>
@@ -66,18 +67,19 @@ class AppInfo extends React.Component {
 
 // 将属性声明为 JS 原生类型
 AppInfo.propTypes = {
-  appInfo: PropTypes.object,
+  // appInfo: PropTypes.object,
   getAppInfo: PropTypes.func,
 };
 
 // 为属性指定默认值
 AppInfo.defaultProps = {
-  appInfo: {},
+  // appInfo: {},
   getAppInfo: () => {},
 };
 
 const mapStateToProps = (state) => {
   return {
+    appInfo: state.appInfo, // app详细信息
     changeAppInfoIsLoading: state.changeAppInfoIsLoading,
     deleteAppIsLoading: state.deleteAppIsLoading,
   };

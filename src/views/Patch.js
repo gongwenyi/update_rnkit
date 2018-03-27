@@ -1,7 +1,12 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { Button, message, Menu, Dropdown, Icon, Tag } from 'antd';
+import { Button, message, Menu, Dropdown, Icon, Tag, Modal, Form, Input, Radio, Switch, Upload, Slider, InputNumber, Select, DatePicker } from 'antd';
 import appStyle from 'style/Patch.less';
+
+const FormItem = Form.Item;
+const RadioGroup = Radio.Group;
+const { TextArea } = Input;
+const { Option } = Select;
 
 class Patch extends React.Component {
   constructor(props) {
@@ -14,6 +19,9 @@ class Patch extends React.Component {
         numsPerPage: 10, // 每页的条数
         count: 0, // 总条目数
       },
+      packageVisiable: false, // package显示切换
+      packageEditType: 'new', // 保存类型
+      currentPackage: {}, // 当前编辑的的package
       versionListInfo: { // 补丁包列表信息
         currentPage: 0, // 列表页码
         data: [], // 列表数据
@@ -21,14 +29,29 @@ class Patch extends React.Component {
         numsPerPage: 10, // 每页的条数
         count: 0, // 总条目数
       },
+      versionVisiable: false, // 补丁包显示切换
+      versionEditType: 'new', // 保存类型
+      currentVersion: {}, // 当前编辑的的补丁包
+      fileToken: {
+        token: '', // 七牛上传凭证
+        expires: '', // 上传凭证过期时间
+        up_host: '', // 上传地址
+      }, // 获取上传凭证（七牛）数据
+      qiniuResponse: {}, // 七牛文件上传凭证
+      deleteVisiable: false, // 删除确认框
+      conditionOptions: ['ios>=9', 'ios>=10', 'ios>=11'], // 灰度条件可选项
+      mode: 'time', // 模式
+      deleteFunc: () => {},
     };
   }
   componentDidMount() {
     this.searchPageList('packageListInfo', 1); // 获取应用的package列表第一页数据
     this.searchPageList('versionListInfo', 1); // 获取应用的补丁列表第一页数据
   }
+  componentDidUpdate() {
+    $('.versionWrap').css({ width: '580px', top: '50px' });
+  }
   searchPageList(type, currentPage) { // 获取应用的package或补丁列表
-    // console.log('searchPageList===', type, currentPage);
     const self = this;
     const params = {
       app_key: this.props.match.params.key,
@@ -53,28 +76,197 @@ class Patch extends React.Component {
     } }));
   }
   handlePackage(item, e) {
-    console.log(item, e);
+    this.setState(() => ({ currentPackage: item }));
+    if (e.key === 'edit') {
+      this.props.form.setFieldsValue({ name: item.name });
+      this.openPackageDialog('edit');
+    } else {
+      this.deleteFunc = () => {
+        const self = this;
+        self.props.dispatch(actions.saveNewOrSaveChange({ url: 'package/del', tip: '删除', params: { key: this.state.currentPackage.key }, callback(res) {
+          self.setState(() => ({ deleteVisiable: false }));
+          if (res && res.errno === 0) {
+            self.searchPageList('packageListInfo', 1);
+          }
+        } }));
+      };
+      this.setState(() => ({ deleteVisiable: true, deleteText: '此操作将永久删除该文件, 是否继续？' }));
+    }
   }
   handleVersion(item, e) {
-    console.log(item, e);
+    this.setState(() => ({ currentVersion: item }));
+    if (e.key === 'edit') {
+      this.props.form.setFieldsValue({
+        name: item.name,
+        release_type: item.release_type,
+        gray_type: item.gray_type || 1,
+        gray_percent: item.gray_percent * 10 || 20,
+        gray_count: item.gray_count || 100,
+        condition: item.condition ? JSON.parse(item.condition) : [],
+        is_mandatory: item.is_mandatory === 1,
+        is_silent: item.is_silent === 1,
+        isReleaseNow: false,
+        release_time: moment(item.release_time),
+        description: item.description,
+        meta_info: item.meta_info,
+      });
+      this.openVersionDialog('edit');
+    } else {
+      this.deleteFunc = () => {
+        const self = this;
+        self.props.dispatch(actions.saveNewOrSaveChange({ url: 'version/del', tip: '删除', params: { key: this.state.currentVersion.key }, callback(res) {
+          self.setState(() => ({ deleteVisiable: false }));
+          if (res && res.errno === 0) {
+            self.searchPageList('versionListInfo', 1);
+          }
+        } }));
+      };
+      this.setState(() => ({ deleteVisiable: true, deleteText: '此操作将永久删除该文件, 是否继续？' }));
+    }
+  }
+  deleteConfirm() {
+    this.deleteFunc();
+    this.setState(() => ({ deleteVisiable: false }));
+  }
+  deleteCancel() {
+    this.setState(() => ({ deleteVisiable: false }));
   }
   deletePackageVersion(item, element) { // 删除package中的补丁
     console.log(item, element);
   }
-  addPackage() {
-    console.log('addPackage');
+  openPackageDialog(type) {
+    this.getFileToken();
+    this.setState(() => ({ packageVisiable: true, packageEditType: type, qiniuResponse: {} }));
   }
-  addVersion() {
-    console.log('addVersion');
+  openVersionDialog(type) {
+    this.getFileToken();
+    this.setState(() => ({ versionVisiable: true, versionEditType: type, qiniuResponse: {} }));
+  }
+  packageAddOrEdit() {
+    const self = this;
+    const isNew = self.state.packageEditType === 'new';
+    self.props.form.validateFields((errors, values) => { // eslint-disable-line
+      if (isNew && !self.state.qiniuResponse.hash) {
+        message.error('请先上传文件！');
+        return false;
+      }
+      if (!errors) {
+        const params = {
+          name: values.name,
+          file_name: self.state.qiniuResponse.name,
+          hash: self.state.qiniuResponse.hash,
+          app_key: self.props.appInfo.key,
+        };
+        if (!isNew) params.package_key = self.state.currentPackage.key;
+        const url = isNew ? 'package/create' : 'package/update';
+        const tip = `${isNew ? '创建' : '更新'}package`;
+        self.props.dispatch(actions.saveNewOrSaveChange({ url, tip, params, callback(res) {
+          if (res && res.errno === 0 && self.patch) {
+            self.setState(() => ({ packageVisiable: false }));
+            self.searchPageList('packageListInfo', 1);
+          }
+        } }));
+      }
+    });
+  }
+  versionAddOrEdit() {
+    const self = this;
+    const isNew = self.state.versionEditType === 'new';
+    self.props.form.validateFields((errors, values) => { // eslint-disable-line
+      if (isNew && !self.state.qiniuResponse.hash) {
+        message.error('请先上传文件！');
+        return false;
+      }
+      if (!errors) {
+        const params = {
+          name: values.name,
+          file_name: self.state.qiniuResponse.name,
+          hash: self.state.qiniuResponse.hash,
+          app_key: self.props.appInfo.key,
+          release_type: values.release_type,
+          gray_type: values.gray_type,
+          gray_percent: values.gray_percent / 10,
+          gray_count: values.gray_count,
+          condition: JSON.stringify(values.condition),
+          is_mandatory: values.is_mandatory === false ? 0 : 1,
+          is_silent: values.is_silent === false ? 0 : 1,
+          release_time: values.isReleaseNow ? '' : values.release_time.format('YYYY-MM-DD HH:mm:ss'),
+          description: values.description,
+          meta_info: values.meta_info,
+          package_key: '',
+        };
+        if (!isNew) {
+          params.version_key = self.state.currentVersion.key;
+          params.release_time = moment(values.release_time).isAfter(moment().format('YYYY-MM-DD HH:mm:ss')) ? moment(values.release_time).format('YYYY-MM-DD HH:mm:ss') : '';
+        }
+        const url = isNew ? 'version/create' : 'version/update';
+        const tip = `${isNew ? '创建' : '更新'}补丁包`;
+        self.props.dispatch(actions.saveNewOrSaveChange({ url, tip, params, callback(res) {
+          if (res && res.errno === 0 && self.patch) {
+            self.setState(() => ({ versionVisiable: false }));
+            self.searchPageList('versionListInfo', 1);
+          }
+        } }));
+      }
+    });
+  }
+  handleCancel(type) {
+    this.setState(() => ({ [`${type}Visiable`]: false }));
+  }
+  getFileToken() { // 获取七牛文件上传凭证
+    const self = this;
+    const nowTime = new Date().getTime() / 1000; // 当前时间戳(只到分钟)
+    if (!(self.state.fileToken.expires && self.state.fileToken.expires - nowTime >= 600)) {
+      self.props.dispatch(actions.check({ url: 'file/token', params: {}, callback(res) {
+        if (self.patch) { // 组件销毁时不进行数据更新操作
+          if (res && res.errno === 0) {
+            self.setState(preState => ({
+              fileToken: res.data,
+            }));
+          } else {
+            message.error(res ? res.errmsg : '接口异常，请稍后重试！');
+          }
+        }
+      } }));
+    }
+  }
+  beforePackageUpload(file, fileList) {
+    const reg = new RegExp(this.props.appInfo.platform === 1 ? '\.ipa$' : '\.apk$', ''); // eslint-disable-line
+    if (!reg.test(file.name)) {
+      message.error(`只能上传${this.props.appInfo.platform === 1 ? '.ipa' : '.apk'}文件`);
+      return false;
+    }
+    return true;
+  }
+  beforeVersionUpload(file, fileList) {
+    if (!/\.ppk$/.test(file.name)) {
+      message.error('只能上传.ppk文件');
+      return false;
+    }
+    return true;
+  }
+  updateFileChange(e) {
+    this.setState(() => ({ qiniuResponse: e.file.response }));
+    return e && e.fileList;
   }
   render() {
+    const { getFieldDecorator } = this.props.form;
+    const packageItemLayout = {
+      labelCol: { span: 5 },
+      wrapperCol: { span: 18 },
+    };
+    const versionItemLayout = {
+      labelCol: { span: 4 },
+      wrapperCol: { span: 18 },
+    };
+    const fieldsValue = this.props.form.getFieldsValue();
     return (
       <div className="patch" class={ appStyle.patch } ref={(patch) => { this.patch = patch; }}>
 {/*         package列表 */}
         <div className="grid-package">
           <div className="package">
             <p className="package-title">package</p>
-            <Button icon="plus" size="small" onClick={this.addPackage.bind(this)}></Button>
+            <Button icon="plus" size="small" onClick={this.openPackageDialog.bind(this, 'new')}></Button>
           </div>
           <div className="package-list">
             { !this.state.packageListInfo.data.length && <div className="empty">
@@ -130,7 +322,7 @@ class Patch extends React.Component {
         <div className="grid-version">
           <div className="version">
             <p className="version-title">补丁包</p>
-            <Button icon="plus" size="small" onClick={this.addVersion.bind(this)}></Button>
+            <Button icon="plus" size="small" onClick={this.openVersionDialog.bind(this, 'new')}></Button>
           </div>
           <div className="version-list">
             { !this.state.versionListInfo.data.length && <div className="empty">
@@ -171,133 +363,120 @@ class Patch extends React.Component {
           </div>
         </div>
 {/*         创建/编辑package */}
-{/*         <el-dialog :title="addPackageFormTitle" v-model="addPackageFormVisible" size="small" :close-on-click-modal="false" > */}
-{/*           <el-form :model="addPackageForm" :rules="packageFormRules" ref="addPackageForm"> */}
-{/*             <el-form-item prop="name" label="package名称" :label-width="formLabelWidth"> */}
-{/*               <el-input v-model="addPackageForm.name"></el-input> */}
-{/*             </el-form-item> */}
-{/*             <el-form-item label="安装包" :label-width="formLabelWidth"> */}
-{/*               <el-upload */}
-{/*                 className="package-upload" */}
-{/*                 :action="fileToken.up_host" */}
-{/*                 :data="{token: fileToken.token}" */}
-{/*                 type="drag" */}
-{/*                 :multiple="false" */}
-{/*                 :before-upload="handlePackageBeforeUpload" */}
-{/*                 :on-remove="handleRemove" */}
-{/*                 :on-success="handleSuccess" */}
-{/*                 :on-error="handleError" */}
-{/*                 :default-file-list="packageFileList" */}
-{/*               > */}
-{/*                 <i className="el-icon-upload"></i> */}
-{/*                 <div className="el-dragger__text">将文件拖到此处，或<em>点击上传</em></div> */}
-{/*                 <div v-if="appInfo.platform === 1" className="el-upload__tip" slot="tip">只能上传ipa文件</div> */}
-{/*                 <div v-if="appInfo.platform === 2" className="el-upload__tip" slot="tip">只能上传apk文件</div> */}
-{/*               </el-upload> */}
-{/*             </el-form-item> */}
-{/*           </el-form> */}
-{/*           <div v-if="isEditPackage === false" slot="footer" className="dialog-footer"> */}
-{/*             <Button @click="addPackageFormVisible = false">取 消</Button> */}
-{/*             <Button type="primary" @click="createPackage('addPackageForm')" :loading="isLoading">确 定</Button> */}
-{/*           </div> */}
-{/*           <div v-if="isEditPackage === true" slot="footer" className="dialog-footer"> */}
-{/*             <Button @click="addPackageFormVisible = false">取 消</Button> */}
-{/*             <Button type="primary" @click="updatePackage('addPackageForm')" :loading="isLoading">编 辑</Button> */}
-{/*           </div> */}
-{/*         </el-dialog> */}
+        <Modal
+          title={`${this.state.packageEditType === 'new' ? '创建' : '编辑'}App`}
+          visible={this.state.packageVisiable}
+          onOk={this.packageAddOrEdit.bind(this)}
+          onCancel={this.handleCancel.bind(this, 'package')}>
+          <Form className="login-form">
+            <FormItem {...packageItemLayout} label="package名称">
+              { getFieldDecorator('name', { rules: [{ required: false, message: '请输入package名称' }] })(<Input placeholder="请输入package名称" />) }
+            </FormItem>
+            <FormItem {...packageItemLayout} label="安装包">
+              <div className="dropbox">
+                { getFieldDecorator('dragger', { valuePropName: 'fileList', getValueFromEvent: this.updateFileChange.bind(this) })(
+                  <Upload.Dragger
+                    name="file"
+                    accept={this.props.appInfo.platform === 1 ? '.ipa' : '.apk'}
+                    action={this.state.fileToken.up_host}
+                    beforeUpload={ this.beforePackageUpload.bind(this)}
+                    data={{ token: this.state.fileToken.token }}>
+                    <p className="ant-upload-drag-icon" style={{ marginBottom: '8px' }}>
+                      <Icon type="cloud-upload" style={{ color: '#97a8be', fontSize: '60px' }}/>
+                    </p>
+                    <p className="ant-upload-text" style={{ fontSize: '14px' }}>将文件拖到此处，或<em style={{ color: '#20a0ff' }}>点击上传</em></p>
+                    <p className="ant-upload-hint" style={{ fontSize: '12px' }}>只能上传 {this.props.appInfo.platform === 1 ? 'ipa' : 'apk'} 文件</p>
+                  </Upload.Dragger>) }
+              </div>
+            </FormItem>
+          </Form>
+        </Modal>
 {/*         创建/编辑补丁 */}
-{/*         <el-dialog :title="addVersionFormTitle" v-model="addVersionFormVisible" size="small" :close-on-click-modal="false"> */}
-{/*           <el-form :model="addVersionForm" :rules="versionFormrules" ref="addVersionForm"> */}
-{/*             <el-form-item prop="name" label="补丁名称" :label-width="formLabelWidth"> */}
-{/*               <el-input v-model="addVersionForm.name"></el-input> */}
-{/*             </el-form-item> */}
-{/*             <el-form-item label="安装包" :label-width="formLabelWidth"> */}
-{/*               <el-upload */}
-{/*                 className="package-upload" */}
-{/*                 :action="fileToken.up_host" */}
-{/*                 :data="{token: fileToken.token}" */}
-{/*                 type="drag" */}
-{/*                 :multiple="false" */}
-{/*                 :before-upload="handleVersionBeforeUpload" */}
-{/*                 :on-remove="handleRemove" */}
-{/*                 :on-success="handleSuccess" */}
-{/*                 :on-error="handleError" */}
-{/*                 :default-file-list="versionFileList" */}
-{/*               > */}
-{/*                 <i className="el-icon-upload"></i> */}
-{/*                 <div className="el-dragger__text">将文件拖到此处，或<em>点击上传</em></div> */}
-{/*                 <div className="el-upload__tip" slot="tip">只能上传ppk文件</div> */}
-{/*               </el-upload> */}
-{/*             </el-form-item> */}
-{/*             <el-form-item prop="releaseType" label="发布类型" :label-width="formLabelWidth"> */}
-{/*               <el-radio-group v-model="addVersionForm.releaseType"> */}
-{/*                 <el-radio :label="1">开发预览</el-radio> */}
-{/*                 <el-radio :label="2">全量下发</el-radio> */}
-{/*                 <el-radio :label="3">灰度发布</el-radio> */}
-{/*                 <el-radio :label="4">条件下发</el-radio> */}
-{/*               </el-radio-group> */}
-{/*             </el-form-item> */}
-{/*             如果是灰度发布 */}
-{/*             <template v-if="addVersionForm.releaseType === 3"> */}
-{/*               <el-form-item prop="grayType" label="灰度下发类型" :label-width="formLabelWidth"> */}
-{/*                 <el-radio-group v-model="addVersionForm.grayType"> */}
-{/*                   <el-radio :label="1">百分比</el-radio> */}
-{/*                   <el-radio :label="2">设备数量</el-radio> */}
-{/*                 </el-radio-group> */}
-{/*               </el-form-item> */}
-{/*               <el-form-item v-if="addVersionForm.grayType === 1" prop="grayPercent" label="灰度百分比" :label-width="formLabelWidth"> */}
-{/*                 <el-slider v-model="addVersionForm.grayPercent" :min="10" :max="90" :step="10" show-stops show-input></el-slider> */}
-{/*               </el-form-item> */}
-{/*               <el-form-item v-if="addVersionForm.grayType === 2" prop="grayCount" label="灰度设备数量" :label-width="formLabelWidth"> */}
-{/*                 <el-input v-model="addVersionForm.grayCount"></el-input> */}
-{/*               </el-form-item> */}
-{/*             </template> */}
-{/*             如果是灰度发布 */}
-{/*             如果是条件下发 */}
-{/*             <el-form-item v-if="addVersionForm.releaseType === 4" prop="condition" label="下发条件" :label-width="formLabelWidth"> */}
-{/*               <el-select */}
-{/*                 className="condition-select" */}
-{/*                 v-model="addVersionForm.condition" */}
-{/*                 multiple */}
-{/*                 filterable */}
-{/*                 allow-create */}
-{/*                 placeholder="请选择或输入下发条件" */}
-{/*                 > */}
-{/*                 <el-option */}
-{/*                   v-for="item in addVersionForm.conditionOptions" */}
-{/*                   :value="item"> */}
-{/*                 </el-option> */}
-{/*               </el-select> */}
-{/*             </el-form-item> */}
-{/*             如果是条件下发 */}
-{/*             <el-form-item prop="isMandatory" label="强制更新" :label-width="formLabelWidth"> */}
-{/*               <el-switch on-text="" off-text="" v-model="addVersionForm.isMandatory" @change="isMandatoryChange"></el-switch> */}
-{/*             </el-form-item> */}
-{/*             <el-form-item prop="isSilent" label="静默更新" :label-width="formLabelWidth"> */}
-{/*               <el-switch on-text="" off-text="" v-model="addVersionForm.isSilent" @change="isSilentChange"></el-switch> */}
-{/*             </el-form-item> */}
-{/*             <el-form-item v-if="isEditVersion === false" prop="isReleaseNow" label="立即发布" :label-width="formLabelWidth"> */}
-{/*               <el-switch on-text="" off-text="" v-model="addVersionForm.isReleaseNow"></el-switch> */}
-{/*             </el-form-item> */}
-{/*             <el-form-item v-if="addVersionForm.isReleaseNow === false" prop="releaseTime" label="发布时间" :label-width="formLabelWidth"> */}
-{/*               <el-date-picker v-model="addVersionForm.releaseTime" :editable="false" type="datetime" format="yyyy-MM-dd HH:mm:ss"></el-date-picker> */}
-{/*             </el-form-item> */}
-{/*             <el-form-item prop="description" label="更新描述" :label-width="formLabelWidth"> */}
-{/*               <el-input type="textarea" v-model="addVersionForm.description"></el-input> */}
-{/*             </el-form-item> */}
-{/*             <el-form-item prop="metaInfo" label="扩展字段" :label-width="formLabelWidth"> */}
-{/*               <el-input type="textarea" v-model="addVersionForm.metaInfo" placeholder="格式为json字符串"></el-input> */}
-{/*             </el-form-item> */}
-{/*           </el-form> */}
-{/*           <div v-if="isEditVersion === false" slot="footer" className="dialog-footer"> */}
-{/*             <Button @click="addVersionFormVisible = false">取 消</Button> */}
-{/*             <Button type="primary" @click="createVersion('addVersionForm')" :loading="isLoading">确 定</Button> */}
-{/*           </div> */}
-{/*           <div v-if="isEditVersion === true" slot="footer" className="dialog-footer"> */}
-{/*             <Button @click="addVersionFormVisible = false">取 消</Button> */}
-{/*             <Button type="primary" @click="updateVersion('addVersionForm')" :loading="isLoading">编 辑</Button> */}
-{/*           </div> */}
-{/*         </el-dialog> */}
+        <Modal
+          className="versionWrap"
+          title={`${this.state.versionEditType === 'new' ? '创建' : '编辑'}补丁`}
+          visible={this.state.versionVisiable}
+          onOk={this.versionAddOrEdit.bind(this)}
+          onCancel={this.handleCancel.bind(this, 'version')}>
+          <Form className="login-form">
+            <FormItem {...versionItemLayout} label="补丁名称">
+              { getFieldDecorator('name', { rules: [{ required: true, message: '请输入补丁名称' }] })(<Input placeholder="请输入补丁名称" />) }
+            </FormItem>
+            <FormItem {...versionItemLayout} label="安装包">
+              <div className="dropbox">
+                { getFieldDecorator('dragger', { valuePropName: 'fileList', getValueFromEvent: this.updateFileChange.bind(this) })(
+                  <Upload.Dragger
+                    name="file"
+                    accept=".ppk"
+                    action={this.state.fileToken.up_host}
+                    beforeUpload={ this.beforeVersionUpload.bind(this)}
+                    data={{ token: this.state.fileToken.token }}>
+                    <p className="ant-upload-drag-icon" style={{ marginBottom: '8px' }}>
+                      <Icon type="cloud-upload" style={{ color: '#97a8be', fontSize: '60px' }}/>
+                    </p>
+                    <p className="ant-upload-text" style={{ fontSize: '14px' }}>将文件拖到此处，或<em style={{ color: '#20a0ff' }}>点击上传</em></p>
+                    <p className="ant-upload-hint" style={{ fontSize: '12px' }}>只能上传 ppk 文件</p>
+                  </Upload.Dragger>) }
+              </div>
+            </FormItem>
+            <FormItem {...versionItemLayout} label="发布类型">
+              { getFieldDecorator('release_type', { initialValue: 2 })(
+                <RadioGroup>
+                  <Radio value={1}>开发预览</Radio>
+                  <Radio value={2}>全量下发</Radio>
+                  <Radio value={3}>灰度发布</Radio>
+                  <Radio value={4}>条件下发</Radio>
+                </RadioGroup>) }
+            </FormItem>
+            <FormItem {...versionItemLayout} label="发布类型" className={ fieldsValue.release_type === 3 ? '' : 'hide' }>
+              { getFieldDecorator('gray_type', { initialValue: 1 })(
+                <RadioGroup>
+                  <Radio value={1}>百分比</Radio>
+                  <Radio value={2}>设备数量</Radio>
+                </RadioGroup>) }
+            </FormItem>
+            <FormItem {...versionItemLayout} label="灰度百分比" className={ (fieldsValue.release_type === 3 && (fieldsValue.gray_type === 1 || !fieldsValue.gray_type)) ? '' : 'hide' }>
+              { getFieldDecorator('gray_percent', { initialValue: 20 })(
+                <Slider dots step={10} />) }
+            </FormItem>
+            <FormItem {...packageItemLayout} label="灰度设备数量" className={ (fieldsValue.release_type === 3 && fieldsValue.gray_type === 2) ? '' : 'hide' }>
+              { getFieldDecorator('gray_count', { initialValue: 100 })(
+                <InputNumber min={1} max={100} />) }
+            </FormItem>
+            <FormItem {...versionItemLayout} label="下发条件" className={ fieldsValue.release_type === 4 ? '' : 'hide' }>
+              { getFieldDecorator('condition', {})(
+                <Select mode="tags" placeholder="请选择或输入下发条件">
+                  { this.state.conditionOptions.map((item, index) => <Option value={item} key={index}>{item}</Option>) }
+                </Select>) }
+            </FormItem>
+            <FormItem {...versionItemLayout} label="强制更新">
+              { getFieldDecorator('is_mandatory', { valuePropName: 'checked' })(<Switch />) }
+            </FormItem>
+            <FormItem {...versionItemLayout} label="静默更新">
+              { getFieldDecorator('is_silent', { valuePropName: 'checked' })(<Switch />) }
+            </FormItem>
+            <FormItem {...versionItemLayout} label="立即发布">
+              { getFieldDecorator('isReleaseNow', { valuePropName: 'checked', initialValue: true })(<Switch />) }
+            </FormItem>
+            <FormItem {...versionItemLayout} label="发布时间" className={ !fieldsValue.isReleaseNow ? '' : 'hide' }>
+              { getFieldDecorator('release_time', { initialValue: moment(new Date()) })(
+                <DatePicker mode={this.state.mode} style={{ width: '100%' }} showTime format="YYYY-MM-DD HH:mm:ss" onPanelChange={(value, mode) => { this.setState(() => ({ mode })); }} />) }
+            </FormItem>
+            <FormItem {...versionItemLayout} label="更新描述">
+              { getFieldDecorator('description', {})(<TextArea placeholder="请输入更新描述" autosize={{ minRows: 2, maxRows: 2 }} />) }
+            </FormItem>
+            <FormItem {...versionItemLayout} label="扩展字段">
+              { getFieldDecorator('meta_info', {})(<TextArea placeholder="格式为json字符串" autosize={{ minRows: 2, maxRows: 2 }} />) }
+            </FormItem>
+          </Form>
+        </Modal>
+        <Modal
+          title="提示"
+          visible={this.state.deleteVisiable}
+          onOk={this.deleteConfirm.bind(this)}
+          onCancel={this.deleteCancel.bind(this)}>
+          <p>{ this.state.deleteText }</p>
+        </Modal>
       </div>
     );
   }
@@ -305,9 +484,10 @@ class Patch extends React.Component {
 
 const mapStateToProps = (state) => {
   return {
+    appInfo: state.appInfo, // app详情
     searchPackageListIsLoading: state.searchPackageListIsLoading, // 获取补丁包列表加载loading
     searchVersionListIsLoading: state.searchVersionListIsLoading, // 获取版本列表加载loading
   };
 };
 
-export default connect(mapStateToProps)(Patch);
+export default connect(mapStateToProps)(Form.create()(Patch));

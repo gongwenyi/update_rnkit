@@ -7,6 +7,7 @@ export default {
   registerIsLoading: false, // 注册加载loading
   bindIsLoading: false, // 绑定loading
   userInfo: {}, // 用户信息
+  appInfo: {}, // app详细信息
   resetPwdIsLoading: false, // 重置密码加载loading
   authIsLogin: jwt.checkAuth() || false, // 用户是否登录
   getAppListIsLoading: false, // 获取App列表加载loading

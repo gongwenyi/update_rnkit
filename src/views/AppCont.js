@@ -11,7 +11,7 @@ class AppCont extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      appInfo: {},
+      // appInfo: {},
     };
   }
   componentDidMount() {
@@ -20,11 +20,7 @@ class AppCont extends React.Component {
   }
   getAppInfo() {
     const self = this;
-    self.props.dispatch(actions.searchDetail({ url: 'app/info', tip: '获取app详情', params: { app_key: this.props.match.params.key }, callback(res) {
-      if (res && res.errno === 0) {
-        self.setState(preState => ({ appInfo: res.data }));
-      }
-    } }));
+    self.props.dispatch(actions.searchDetail({ url: 'app/info', dataName: 'appInfo', tip: '获取app详情', params: { app_key: this.props.match.params.key } }));
   }
   render() {
     const { pathname } = this.props.location;
@@ -35,16 +31,16 @@ class AppCont extends React.Component {
           <div className="grid-nav">
             <div className="app-info">
 {/*               app图标 */}
-              { this.state.appInfo.icon && <img className="app-logo" src={this.state.appInfo.icon} alt="app-logo" /> }
-              { !this.state.appInfo.icon && <img className="app-logo" src={require('../assets/img/applogo-default.png')} alt="app-logo" /> }
+              { this.props.appInfo.icon && <img className="app-logo" src={this.props.appInfo.icon} alt="app-logo" /> }
+              { !this.props.appInfo.icon && <img className="app-logo" src={require('../assets/img/applogo-default.png')} alt="app-logo" /> }
 {/*               app所属平台 */}
-              { this.state.appInfo.platform === 1 ? <p className="platform"><Icon type="apple" /> iOS</p>
-              : this.state.appInfo.platform === 2 ? <p className="platform"><Icon type="android" /> Android</p> : null }
-              <p className="app-name">{ this.state.appInfo.name }</p>
+              { this.props.appInfo.platform === 1 ? <p className="platform"><Icon type="apple" /> iOS</p>
+              : this.props.appInfo.platform === 2 ? <p className="platform"><Icon type="android" /> Android</p> : null }
+              <p className="app-name">{ this.props.appInfo.name }</p>
 {/*               app最新版本 */}
-              <p className="app-version">App最新版本：{ this.state.appInfo.app_version || '' }</p>
+              <p className="app-version">App最新版本：{ this.props.appInfo.app_version || '' }</p>
 {/*               应用包名 */}
-              <p className="app-identifier">应用包名：{ this.state.appInfo.app_identifier }</p>
+              <p className="app-identifier">应用包名：{ this.props.appInfo.app_identifier }</p>
             </div>
             <div className="nav">
               <Link className={`nav-item ${/\/patch$/.test(pathname) ? 'link-active' : ''}`} to={`${matchUrl}/patch`}>
@@ -64,7 +60,7 @@ class AppCont extends React.Component {
           <div className="grid-content">
             <Route path="/applications/:key/patch" component={Patch} />
             <Route path="/applications/:key/monitor" component={Monitor} />
-            <Route path="/applications/:key/appInfo" render={() => <AppInfo appInfo={this.state.appInfo} getAppInfo={this.getAppInfo.bind(this)} />} />
+            <Route path="/applications/:key/appInfo" render={() => <AppInfo getAppInfo={this.getAppInfo.bind(this)} />} />
           </div>
         </div>
       </div>
@@ -73,7 +69,9 @@ class AppCont extends React.Component {
 }
 
 const mapStateToProps = (state) => {
-  return {};
+  return {
+    appInfo: state.appInfo, // app详细信息
+  };
 };
 
 export default connect(mapStateToProps)(AppCont);

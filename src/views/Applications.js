@@ -57,7 +57,7 @@ class Applications extends React.Component {
           if (res && res.errno === 0 && self.applications) {
             self.setState(preState => ({ visible: false }));
             if (self.state.appList.length === self.state.count) { // 创建成功后如果是最后一页则更新页面数据
-              if (self.state.count % self.state.numsPerPage === 0) {
+              if (self.state.count % self.state.numsPerPage === 0 && self.state.count !== 0) {
                 self.getAppList(true);
               } else {
                 self.setState(preState => ({ currentPage: preState.currentPage - 1 }));
@@ -75,6 +75,10 @@ class Applications extends React.Component {
   render() {
     const { getFieldDecorator } = this.props.form;
     document.title = '我的应用 - React Native热更新-RNKit云服务';
+    const formItemLayout = {
+      labelCol: { span: 4 },
+      wrapperCol: { span: 18 },
+    };
     return (
       <div className="applications" class={ appStyle.applications } ref={(applications) => { this.applications = applications; }}>
         { this.state.appList.map((item, index) => (
@@ -107,20 +111,20 @@ class Applications extends React.Component {
           onOk={this.handleOk.bind(this)}
           onCancel={this.handleCancel.bind(this)}>
           <Form className="login-form">
-            <FormItem label="应用平台">
+            <FormItem label="应用平台" {...formItemLayout}>
               { getFieldDecorator('platform', { initialValue: 1 })(
                 <RadioGroup>
                   <Radio value={1}>ios</Radio>
                   <Radio value={2}>android</Radio>
                 </RadioGroup>) }
             </FormItem>
-            <FormItem label="应用名称">
+            <FormItem label="应用名称" {...formItemLayout}>
               { getFieldDecorator('name', { rules: [{ required: true, message: '请输入应用名称' }, { min: 1, max: 40, message: '长度在 1 到 40 个字符' }] })(<Input placeholder="请输入应用名称" />) }
             </FormItem>
-            <FormItem label="应用包名">
+            <FormItem label="应用包名" {...formItemLayout}>
               { getFieldDecorator('app_identifier', { rules: [{ required: true, message: '请输入应用包名' }] })(<Input placeholder="请输入应用包名" />) }
             </FormItem>
-            <FormItem label="下载地址">
+            <FormItem label="下载地址" {...formItemLayout}>
               { getFieldDecorator('download_url', { rules: [{ required: false, message: '请输入下载地址' }, { min: 4, max: 200, message: '长度在 4 到 200 个字符' }] })(<Input placeholder="请输入下载地址" />) }
             </FormItem>
           </Form>

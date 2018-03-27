@@ -22,9 +22,10 @@ class Monitor extends React.Component {
     } }));
   }
   render() {
+    document.title = '实时监控 - React Native热更新-RNKit云服务';
     return (
       <div className="monitor" class={ appStyle.monitor }>
-        <Table dataSource={this.state.statisticsInfo} ref={(table) => { this.table = table; }} bordered>
+        <Table dataSource={this.state.statisticsInfo} ref={(table) => { this.table = table; }} bordered rowKey="hash">
           <Column title="补丁名称" dataIndex="name" key="name" />
           <Column title="数量" dataIndex="count" key="count" />
           <Column title="创建时间" dataIndex="created_at" key="created_at" render={funs.formalTime} />

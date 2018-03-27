@@ -154,7 +154,7 @@ export default {
       try {
         if (preParams.dataName) dispatch({ type: 'COMMON_CHANGE', keyValue: { [`${preParams.dataName}IsLoading`]: true } }); // 开始loading
         const response = await Api.common.post(preParams);
-        if (!preParams.notUseTip) message.error(response.errmsg || `${preParams.tip || '操作'}${response.errno === 0 ? '成功' : '失败'}`);
+        if (!preParams.notUseTip) message[response.errno === 0 ? 'success' : 'error'](response.errmsg || `${preParams.tip || '操作'}${response.errno === 0 ? '成功' : '失败'}`);
         if (preParams.dataName) dispatch({ type: 'COMMON_CHANGE', keyValue: { [`${preParams.dataName}IsLoading`]: false } }); // 结束loading
         if (callback) callback(response);
       } catch (error) {
