@@ -133,17 +133,20 @@ class Patch extends React.Component {
     this.setState(() => ({ deleteVisiable: false }));
   }
   deletePackageVersion(item, element) { // 删除package中的补丁
-    const self = this;
-    const params = {
-      package_key: item.key,
-      version_key: element.key,
+    this.deleteFunc = () => {
+      const self = this;
+      const params = {
+        package_key: item.key,
+        version_key: element.key,
+      };
+      self.props.dispatch(actions.saveNewOrSaveChange({ url: 'package/cancel_version', tip: '删除', params, callback(res) {
+        if (res && res.errno === 0) {
+          self.setState(() => ({ dragPackage: {} }));
+          self.searchPageList('packageListInfo', 1);
+        }
+      } }));
     };
-    self.props.dispatch(actions.saveNewOrSaveChange({ url: 'package/cancel_version', tip: '删除', params, callback(res) {
-      if (res && res.errno === 0) {
-        self.setState(() => ({ dragPackage: {} }));
-        self.searchPageList('packageListInfo', 1);
-      }
-    } }));
+    this.setState(() => ({ deleteVisiable: true, deleteText: '此操作将永久删除该文件, 是否继续？' }));
   }
   openPackageDialog(type) {
     this.getFileToken();
