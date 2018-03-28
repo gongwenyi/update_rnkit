@@ -41,7 +41,8 @@ class Patch extends React.Component {
       deleteVisiable: false, // 删除确认框
       conditionOptions: ['ios>=9', 'ios>=10', 'ios>=11'], // 灰度条件可选项
       mode: 'time', // 模式
-      deleteFunc: () => {},
+      dragPackage: {}, // 当前拖拽的包
+      deleteFunc: () => {}, // 确认框确认时需要执行的操作
     };
   }
   componentDidMount() {
@@ -78,7 +79,7 @@ class Patch extends React.Component {
   handlePackage(item, e) {
     this.setState(() => ({ currentPackage: item }));
     if (e.key === 'edit') {
-      this.props.form.setFieldsValue({ name: item.name });
+      this.props.form.setFieldsValue({ package_name: item.name });
       this.openPackageDialog('edit');
     } else {
       this.deleteFunc = () => {
@@ -97,7 +98,7 @@ class Patch extends React.Component {
     this.setState(() => ({ currentVersion: item }));
     if (e.key === 'edit') {
       this.props.form.setFieldsValue({
-        name: item.name,
+        version_name: item.name,
         release_type: item.release_type,
         gray_type: item.gray_type || 1,
         gray_percent: item.gray_percent * 10 || 20,
@@ -132,14 +133,26 @@ class Patch extends React.Component {
     this.setState(() => ({ deleteVisiable: false }));
   }
   deletePackageVersion(item, element) { // 删除package中的补丁
-    console.log(item, element);
+    const self = this;
+    const params = {
+      package_key: item.key,
+      version_key: element.key,
+    };
+    self.props.dispatch(actions.saveNewOrSaveChange({ url: 'package/cancel_version', tip: '删除', params, callback(res) {
+      if (res && res.errno === 0) {
+        self.setState(() => ({ dragPackage: {} }));
+        self.searchPageList('packageListInfo', 1);
+      }
+    } }));
   }
   openPackageDialog(type) {
     this.getFileToken();
+    if (type === 'new') this.props.form.resetFields(); // 新增重置表单
     this.setState(() => ({ packageVisiable: true, packageEditType: type, qiniuResponse: {} }));
   }
   openVersionDialog(type) {
     this.getFileToken();
+    if (type === 'new') this.props.form.resetFields(); // 新增重置表单
     this.setState(() => ({ versionVisiable: true, versionEditType: type, qiniuResponse: {} }));
   }
   packageAddOrEdit() {
@@ -152,7 +165,7 @@ class Patch extends React.Component {
       }
       if (!errors) {
         const params = {
-          name: values.name,
+          name: values.package_name,
           file_name: self.state.qiniuResponse.name,
           hash: self.state.qiniuResponse.hash,
           app_key: self.props.appInfo.key,
@@ -179,7 +192,7 @@ class Patch extends React.Component {
       }
       if (!errors) {
         const params = {
-          name: values.name,
+          name: values.version_name,
           file_name: self.state.qiniuResponse.name,
           hash: self.state.qiniuResponse.hash,
           app_key: self.props.appInfo.key,
@@ -249,6 +262,46 @@ class Patch extends React.Component {
     this.setState(() => ({ qiniuResponse: e.file.response }));
     return e && e.fileList;
   }
+  isMandatoryValidator(rule, value, callback) {
+    const { is_silent } = this.props.form.getFieldsValue();
+    if (value && is_silent) this.props.form.setFieldsValue({ is_silent: false });
+    callback();
+  }
+  isSilentValidator(rule, value, callback) {
+    const { is_mandatory } = this.props.form.getFieldsValue();
+    if (value && is_mandatory) this.props.form.setFieldsValue({ is_mandatory: false });
+    callback();
+  }
+  fileDragStart(item, ev) {
+    ev.dataTransfer.setData('dragVersion', window.JSON.stringify(item));
+  }
+  fileDragEnter(item, ev) {
+    const element = this.state.packageListInfo.data.find(ele => ele.key === item.key);
+    // console.log('element==', element, !!(!element.version || !element.version.length));
+    if (!element.version || !element.version.length) {
+      this.setState(() => ({ dragPackage: item }));
+    }
+  }
+  fileDragOver(item, ev) {
+    ev.preventDefault();
+  }
+  fileDrop(item, ev) {
+    const dragVersion = window.JSON.parse(ev.dataTransfer.getData('dragVersion'));
+    const { dragPackage } = this.state;
+    if (item.key === dragPackage.key) {
+      const self = this;
+      const params = {
+        package_key: item.key,
+        version_key: dragVersion.key,
+      };
+      self.props.dispatch(actions.saveNewOrSaveChange({ url: 'package/add_version', tip: '添加', params, callback(res) {
+        if (res && res.errno === 0) {
+          self.setState(() => ({ dragPackage: {} }));
+          self.searchPageList('packageListInfo', 1);
+        }
+      } }));
+    }
+  }
   render() {
     const { getFieldDecorator } = this.props.form;
     const packageItemLayout = {
@@ -293,11 +346,11 @@ class Patch extends React.Component {
                   <p className="app-version">{ funs.formalTime(item.created_at) }</p>
                 </div>
               </div>
-              <div className="drag-area-package">
-                { item.version.map(element => <div className="drag-item" key={element.key}>
+              <div className="drag-area-package" onDragEnter={ this.fileDragEnter.bind(this, item) } onDragOver={ this.fileDragOver.bind(this, item) } onDrop={ this.fileDrop.bind(this, item) }>
+                { (item.version || []).map(element => <div className="drag-item" key={element.key}>
                   <div className="item-row">
                     <p>{ element.name }</p>
-                    <Button className="delete-btn" icon="delete" size="small" title="删除" onClick={this.deletePackageVersion.bind(this, item, element)}></Button>
+                    <Button className="delete-btn" icon="delete" size="small" title="删除" onClick={ this.deletePackageVersion.bind(this, item, element) }></Button>
                   </div>
                   <div className="item-row">
                     <p>发布时间：</p>
@@ -330,7 +383,7 @@ class Patch extends React.Component {
               <p className="empty-text">点击右上角"+"按钮创建补丁</p>
             </div> }
             <div className="drag-area-version">
-              { this.state.versionListInfo.data.map(item => <div className="drag-item" key={item.key} draggable>
+              { this.state.versionListInfo.data.map(item => <div className="drag-item" key={item.key} draggable onDragStart={ this.fileDragStart.bind(this, item) }>
                 <div className="item-row item-row-border">
                   <p>{ item.name }</p>
                   <Dropdown overlay={<Menu onClick={this.handleVersion.bind(this, item)}>
@@ -370,11 +423,11 @@ class Patch extends React.Component {
           onCancel={this.handleCancel.bind(this, 'package')}>
           <Form className="login-form">
             <FormItem {...packageItemLayout} label="package名称">
-              { getFieldDecorator('name', { rules: [{ required: false, message: '请输入package名称' }] })(<Input placeholder="请输入package名称" />) }
+              { getFieldDecorator('package_name', { rules: [{ required: false, message: '请输入package名称' }] })(<Input placeholder="请输入package名称" />) }
             </FormItem>
             <FormItem {...packageItemLayout} label="安装包">
               <div className="dropbox">
-                { getFieldDecorator('dragger', { valuePropName: 'fileList', getValueFromEvent: this.updateFileChange.bind(this) })(
+                { getFieldDecorator('package_dragger', { valuePropName: 'fileList', getValueFromEvent: this.updateFileChange.bind(this) })(
                   <Upload.Dragger
                     name="file"
                     accept={this.props.appInfo.platform === 1 ? '.ipa' : '.apk'}
@@ -400,11 +453,11 @@ class Patch extends React.Component {
           onCancel={this.handleCancel.bind(this, 'version')}>
           <Form className="login-form">
             <FormItem {...versionItemLayout} label="补丁名称">
-              { getFieldDecorator('name', { rules: [{ required: true, message: '请输入补丁名称' }] })(<Input placeholder="请输入补丁名称" />) }
+              { getFieldDecorator('version_name', { rules: [{ required: true, message: '请输入补丁名称' }] })(<Input placeholder="请输入补丁名称" />) }
             </FormItem>
             <FormItem {...versionItemLayout} label="安装包">
               <div className="dropbox">
-                { getFieldDecorator('dragger', { valuePropName: 'fileList', getValueFromEvent: this.updateFileChange.bind(this) })(
+                { getFieldDecorator('version_dragger', { valuePropName: 'fileList', getValueFromEvent: this.updateFileChange.bind(this) })(
                   <Upload.Dragger
                     name="file"
                     accept=".ppk"
@@ -450,10 +503,10 @@ class Patch extends React.Component {
                 </Select>) }
             </FormItem>
             <FormItem {...versionItemLayout} label="强制更新">
-              { getFieldDecorator('is_mandatory', { valuePropName: 'checked' })(<Switch />) }
+              { getFieldDecorator('is_mandatory', { valuePropName: 'checked', rules: [{ validator: this.isMandatoryValidator.bind(this) }] })(<Switch />) }
             </FormItem>
             <FormItem {...versionItemLayout} label="静默更新">
-              { getFieldDecorator('is_silent', { valuePropName: 'checked' })(<Switch />) }
+              { getFieldDecorator('is_silent', { valuePropName: 'checked', rules: [{ validator: this.isSilentValidator.bind(this) }] })(<Switch />) }
             </FormItem>
             <FormItem {...versionItemLayout} label="立即发布">
               { getFieldDecorator('isReleaseNow', { valuePropName: 'checked', initialValue: true })(<Switch />) }
