@@ -76,7 +76,7 @@ class Patch extends React.Component {
       }
     } }));
   }
-  handlePackage(item, e) {
+  handlePackage(item, e) { // package下拉操作
     this.setState(() => ({ currentPackage: item }));
     if (e.key === 'edit') {
       this.props.form.setFieldsValue({ package_name: item.name });
@@ -94,7 +94,7 @@ class Patch extends React.Component {
       this.setState(() => ({ deleteVisiable: true, deleteText: '此操作将永久删除该文件, 是否继续？' }));
     }
   }
-  handleVersion(item, e) {
+  handleVersion(item, e) { // 补丁包下拉操作
     this.setState(() => ({ currentVersion: item }));
     if (e.key === 'edit') {
       this.props.form.setFieldsValue({
@@ -125,11 +125,11 @@ class Patch extends React.Component {
       this.setState(() => ({ deleteVisiable: true, deleteText: '此操作将永久删除该文件, 是否继续？' }));
     }
   }
-  deleteConfirm() {
+  deleteConfirm() { // 确认框确认
     this.deleteFunc();
     this.setState(() => ({ deleteVisiable: false }));
   }
-  deleteCancel() {
+  deleteCancel() { // 确认框取消
     this.setState(() => ({ deleteVisiable: false }));
   }
   deletePackageVersion(item, element) { // 删除package中的补丁
@@ -148,17 +148,17 @@ class Patch extends React.Component {
     };
     this.setState(() => ({ deleteVisiable: true, deleteText: '此操作将永久删除该文件, 是否继续？' }));
   }
-  openPackageDialog(type) {
+  openPackageDialog(type) { // 打开package表单对话框
     this.getFileToken();
     if (type === 'new') this.props.form.resetFields(); // 新增重置表单
     this.setState(() => ({ packageVisiable: true, packageEditType: type, qiniuResponse: {} }));
   }
-  openVersionDialog(type) {
+  openVersionDialog(type) { // 打开补丁包表单对话框
     this.getFileToken();
     if (type === 'new') this.props.form.resetFields(); // 新增重置表单
     this.setState(() => ({ versionVisiable: true, versionEditType: type, qiniuResponse: {} }));
   }
-  packageAddOrEdit() {
+  packageAddOrEdit() { // 新增或编辑package
     const self = this;
     const isNew = self.state.packageEditType === 'new';
     self.props.form.validateFields((errors, values) => { // eslint-disable-line
@@ -185,7 +185,7 @@ class Patch extends React.Component {
       }
     });
   }
-  versionAddOrEdit() {
+  versionAddOrEdit() { // 新增或编辑补丁包
     const self = this;
     const isNew = self.state.versionEditType === 'new';
     self.props.form.validateFields((errors, values) => { // eslint-disable-line
@@ -226,7 +226,7 @@ class Patch extends React.Component {
       }
     });
   }
-  handleCancel(type) {
+  handleCancel(type) { // 表单操作取消
     this.setState(() => ({ [`${type}Visiable`]: false }));
   }
   getFileToken() { // 获取七牛文件上传凭证
@@ -246,7 +246,7 @@ class Patch extends React.Component {
       } }));
     }
   }
-  beforePackageUpload(file, fileList) {
+  beforePackageUpload(file, fileList) { // 上传package文件前检查
     const reg = new RegExp(this.props.appInfo.platform === 1 ? '\.ipa$' : '\.apk$', ''); // eslint-disable-line
     if (!reg.test(file.name)) {
       message.error(`只能上传${this.props.appInfo.platform === 1 ? '.ipa' : '.apk'}文件`);
@@ -254,41 +254,40 @@ class Patch extends React.Component {
     }
     return true;
   }
-  beforeVersionUpload(file, fileList) {
+  beforeVersionUpload(file, fileList) { // 上传补丁包文件前检查
     if (!/\.ppk$/.test(file.name)) {
       message.error('只能上传.ppk文件');
       return false;
     }
     return true;
   }
-  updateFileChange(e) {
+  updateFileChange(e) { // 上传文件更新时
     this.setState(() => ({ qiniuResponse: e.file.response }));
     return e && e.fileList;
   }
-  isMandatoryValidator(rule, value, callback) {
+  isMandatoryValidator(rule, value, callback) { // 强制更新校验
     const { is_silent } = this.props.form.getFieldsValue();
     if (value && is_silent) this.props.form.setFieldsValue({ is_silent: false });
     callback();
   }
-  isSilentValidator(rule, value, callback) {
+  isSilentValidator(rule, value, callback) { // 静默更新校验
     const { is_mandatory } = this.props.form.getFieldsValue();
     if (value && is_mandatory) this.props.form.setFieldsValue({ is_mandatory: false });
     callback();
   }
-  fileDragStart(item, ev) {
+  fileDragStart(item, ev) { // 拖拽事件开始
     ev.dataTransfer.setData('dragVersion', window.JSON.stringify(item));
   }
-  fileDragEnter(item, ev) {
+  fileDragEnter(item, ev) { // 拖拽事件进入目标区域
     const element = this.state.packageListInfo.data.find(ele => ele.key === item.key);
-    // console.log('element==', element, !!(!element.version || !element.version.length));
     if (!element.version || !element.version.length) {
       this.setState(() => ({ dragPackage: item }));
     }
   }
-  fileDragOver(item, ev) {
+  fileDragOver(item, ev) { // 拖拽事件悬空目标上方
     ev.preventDefault();
   }
-  fileDrop(item, ev) {
+  fileDrop(item, ev) { // 拖拽事件在目标上方结束
     const dragVersion = window.JSON.parse(ev.dataTransfer.getData('dragVersion'));
     const { dragPackage } = this.state;
     if (item.key === dragPackage.key) {
